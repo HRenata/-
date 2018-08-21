@@ -1,7 +1,8 @@
 from keras import backend as K
 from keras.models import Model
 from keras.layers import (BatchNormalization, Conv1D, Dense, Input, 
-    TimeDistributed, Activation, Bidirectional, SimpleRNN, GRU, LSTM)
+    TimeDistributed, Activation, Bidirectional, SimpleRNN, GRU, LSTM,
+    CuDNNGRU, CuDNNLSTM, Dropout)
 
 def simple_rnn_model(input_dim, output_dim=29):
     """ Build a recurrent network for speech 
@@ -9,8 +10,7 @@ def simple_rnn_model(input_dim, output_dim=29):
     # Main acoustic input
     input_data = Input(name='the_input', shape=(None, input_dim))
     # Add recurrent layer
-    simp_rnn = GRU(output_dim, return_sequences=True, 
-                 implementation=2, name='rnn')(input_data)
+    simp_rnn = CuDNNGRU(output_dim, return_sequences=True, name='rnn')(input_data)
     # Add softmax activation layer
     y_pred = Activation('softmax', name='softmax')(simp_rnn)
     # Specify the model
@@ -125,6 +125,7 @@ def bidirectional_rnn_model(input_dim, units, output_dim=29):
     # TODO: Add bidirectional recurrent layer
     bidir_rnn = Bidirectional(SimpleRNN(units, activation='relu', 
                                         return_sequences=True, name='rnn'), merge_mode='concat')(input_data)
+    #batch_norm = BatchNormalization(name='bn_bi_layer')(bidir_rnn)
     # TODO: Add a TimeDistributed(Dense(output_dim)) layer
     time_dense = TimeDistributed(Dense(output_dim))(bidir_rnn)
     # Add softmax activation layer
@@ -135,18 +136,37 @@ def bidirectional_rnn_model(input_dim, units, output_dim=29):
     print(model.summary())
     return model
 
-def final_model():
+def final_model(input_dim, filters, kernel_size, conv_stride,
+    conv_border_mode, units, output_dim=29):
     """ Build a deep network for speech 
     """
     # Main acoustic input
     input_data = Input(name='the_input', shape=(None, input_dim))
-    # TODO: Specify the layers in your network
-    ...
-    # TODO: Add softmax activation layer
-    y_pred = ...
+    # Add convolutional layer
+    conv_1d = Conv1D(filters, kernel_size, 
+                     strides=conv_stride, 
+                     padding=conv_border_mode,
+                     activation='relu',
+                     name='conv1d')(input_data)
+    # Add batch normalization
+    bn_cnn = BatchNormalization(name='bn_conv_1d')(conv_1d)
+    # Add batch normalization
+    # Add a recurrent layer
+    bidir_rnn = Bidirectional(SimpleRNN(units*2, activation='relu',
+        return_sequences=True, name='birnn1'), merge_mode='concat')(bn_cnn)
+
+    drop_1 = Dropout(0.2)(bidir_rnn)
+
+    bidir_rnn_2 = Bidirectional(SimpleRNN(units, activation='relu',
+        return_sequences=True, name='birnn2'), merge_mode='concat')(drop_1)
+
+    drop_2 = Dropout(0.3)(bidir_rnn_2)
+    time_dense = TimeDistributed(Dense(output_dim))(drop_2)
+    # Add softmax activation layer
+    y_pred = Activation('softmax', name='softmax')(time_dense)
     # Specify the model
     model = Model(inputs=input_data, outputs=y_pred)
-    # TODO: Specify model.output_length
-    model.output_length = ...
+    model.output_length = lambda x: cnn_output_length(
+        x, kernel_size, conv_border_mode, conv_stride)
     print(model.summary())
     return model

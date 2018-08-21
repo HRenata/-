@@ -64,15 +64,29 @@ def model_4():
     train_model(input_to_softmax=model_4,
             pickle_path='model_4.pickle',
             save_model_path='model_4.h5',
+            sort_by_duration=True,
             spectrogram=True)
     pass
+def model_4_b():
+    model_4 = bidirectional_rnn_model(input_dim=13, # change to 13 if you would like to use MFCC features
+                                  units=200)
+    train_model(input_to_softmax=model_4,
+            pickle_path='model_4_b.pickle',
+            save_model_path='model_4_b.h5',
+            sort_by_duration=True,
+            spectrogram=False)
 
 def model_final():
-    model_final = final_model()
+    model_final = final_model(input_dim=161, # change to 13 if you would like to use MFCC features
+                        filters=400,
+                        kernel_size=11,
+                        conv_stride=2,
+                        conv_border_mode='valid',
+                        units=400)
     train_model(input_to_softmax=model_final,
             pickle_path='model_final.pickle',
             save_model_path='model_final.h5',
-            spectogram=True)
+            spectrogram=True)
     
 
 
@@ -94,6 +108,8 @@ if __name__=='__main__':
         model_3()
     if command == 'model4':
         model_4()
+    if command == 'model4b':
+        model_4_b()
     if command == 'final':
         model_final()
     
