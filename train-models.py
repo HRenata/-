@@ -77,16 +77,16 @@ def model_4_b():
             spectrogram=False)
 
 def model_final():
-    model_final = final_model(input_dim=161, # change to 13 if you would like to use MFCC features
-                        filters=400,
+    model_final = final_model(input_dim=13, # change to 13 if you would like to use MFCC features
+                        filters=200,
                         kernel_size=11,
                         conv_stride=2,
                         conv_border_mode='valid',
-                        units=400)
+                        units=200)
     train_model(input_to_softmax=model_final,
             pickle_path='model_final.pickle',
             save_model_path='model_final.h5',
-            spectrogram=True)
+            spectrogram=False)
     
 
 
