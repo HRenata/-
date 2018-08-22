@@ -138,3 +138,19 @@ def int_sequence_to_text(int_sequence):
         text.append(ch)
     return text
 
+def ctc_to_char(prediction):
+    """
+    return prediction as chars
+    
+    Args:
+        (:obj:`numpy.ndarray`) (samples * time_step * features)
+    Return:
+        char[] where char[i] == max(features at time_step i)
+
+    """
+    int_arr = []
+    for row in prediction[0]:
+        print(np.argmax(row))
+        int_arr.append(np.argmax(row))
+    
+    return int_arr

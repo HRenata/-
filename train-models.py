@@ -87,6 +87,20 @@ def model_final():
             pickle_path='model_final.pickle',
             save_model_path='model_final.h5',
             spectrogram=False)
+
+def model_final_500():
+    model_final = final_model(input_dim=13, # change to 13 if you would like to use MFCC features
+                        filters=200,
+                        kernel_size=11,
+                        conv_stride=2,
+                        conv_border_mode='valid',
+                        units=200)
+    train_model(input_to_softmax=model_final,
+            pickle_path='model_final_500.pickle',
+            save_model_path='model_final_500.h5',
+            spectrogram=False)
+
+
     
 
 
@@ -112,6 +126,8 @@ if __name__=='__main__':
         model_4_b()
     if command == 'final':
         model_final()
+    if command == 'big':
+        model_final_500()
     
     
     
