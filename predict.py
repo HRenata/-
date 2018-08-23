@@ -32,6 +32,10 @@ def get_predictions(indexes, partition, input_to_softmax, model_path):
             transcr = data_gen.train_texts[index]
             audio_path = data_gen.train_audio_paths[index]
             data_point = data_gen.normalize(data_gen.featurize(audio_path))
+        elif partition == 'test':
+            transcr = 'thank you for calling'
+            audio_path = '../datasets/AgentExpress/welcome.wav'
+            data_point = data_gen.normalize(data_gen.featurize(audio_path))
         else:
             raise Exception('Invalid partition!  Must be "train" or "validation"')
             
@@ -54,8 +58,8 @@ def get_predictions(indexes, partition, input_to_softmax, model_path):
 
 
 if __name__ == '__main__':
-    get_predictions(indexes=[0,1,2,3,4], 
-                partition='validation',
+    get_predictions(indexes=[0], 
+                partition='test',
                 input_to_softmax=final_model(input_dim=13, # change to 13 if you would like to use MFCC features
                         filters=200,
                         kernel_size=11,
