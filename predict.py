@@ -34,8 +34,9 @@ def get_predictions(indexes, partition, input_to_softmax, model_path):
             data_point = data_gen.normalize(data_gen.featurize(audio_path))
         elif partition == 'test':
             transcr = 'thank you for calling'
-            audio_path = '../datasets/AgentExpress/welcome.wav'
+            audio_path = '../datasets/AgentExpress/date.wav.wav'
             data_point = data_gen.normalize(data_gen.featurize(audio_path))
+            #print(data_point)
         else:
             raise Exception('Invalid partition!  Must be "train" or "validation"')
             
@@ -43,7 +44,7 @@ def get_predictions(indexes, partition, input_to_softmax, model_path):
         prediction = input_to_softmax.predict(np.expand_dims(data_point, axis=0))
     
         output_length = [input_to_softmax.output_length(data_point.shape[0])]
-        #print(ctc_to_char(prediction))
+        print(ctc_to_char(prediction))
         print(K.eval(K.ctc_decode(prediction, output_length, False, 30, 1)[0][0]))
         pred_ints = (K.eval(K.ctc_decode(
                     prediction, output_length)[0][0])+1).flatten().tolist()
@@ -58,7 +59,7 @@ def get_predictions(indexes, partition, input_to_softmax, model_path):
 
 
 if __name__ == '__main__':
-    get_predictions(indexes=[0], 
+    get_predictions(indexes=[0, 4], 
                 partition='test',
                 input_to_softmax=final_model(input_dim=13, # change to 13 if you would like to use MFCC features
                         filters=200,
@@ -67,4 +68,3 @@ if __name__ == '__main__':
                         conv_border_mode='valid',
                         units=200), 
                 model_path='results/model_final_500.h5')
-    
