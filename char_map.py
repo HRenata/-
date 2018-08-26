@@ -35,6 +35,7 @@ z 27
 """
 # the "blank" character is mapped to 28
 
+
 char_map = {}
 index_map = {}
 for line in char_map_str.strip().split('\n'):
