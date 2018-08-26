@@ -52,10 +52,7 @@ def get_predictions(indexes, partition, input_to_softmax, model_path):
         prediction = input_to_softmax.predict(np.expand_dims(data_point, axis=0))
     
         output_length = [input_to_softmax.output_length(data_point.shape[0])]
-
-        pred_beam = ctcBeamSearch(prediction[0], alphabet, None)
-        pred_beam_lm = ctcBeamSearch(prediction[0], alphabet, language_model)
-        pred_token = ctcTokenPassing(prediction[0], alphabet, language_model.getWordList())
+        
         #print(K.eval(K.ctc_decode(prediction, output_length, False, 30, 1)[0][0]))
         pred_ints = (K.eval(K.ctc_decode(
                     prediction, output_length)[0][0])+1).flatten().tolist()
@@ -65,8 +62,11 @@ def get_predictions(indexes, partition, input_to_softmax, model_path):
         Audio(audio_path)
         print('ground_truth:' + ' '*4 + transcr)
         print('best_path:'+ ' '*7 +''.join(int_sequence_to_text(pred_ints)))
+        pred_beam = ctcBeamSearch(prediction[0], alphabet, None)
         print('beam_search:' + ' '*5  + pred_beam)
+        pred_beam_lm = ctcBeamSearch(prediction[0], alphabet, language_model)
         print('beam_search_lm:' + ' '*2  + pred_beam_lm)
+        pred_token = ctcTokenPassing(prediction[0], alphabet, language_model.getWordList())
         print('token_passing:' + ' '*3  + pred_token)
         
 
