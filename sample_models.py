@@ -152,22 +152,24 @@ def final_model(input_dim, filters, kernel_size, conv_stride,
     bn_cnn = BatchNormalization(name='bn_conv_1d')(conv_1d)
     # Add batch normalization
     # Add a recurrent layer
-    bidir_rnn = Bidirectional(CuDNNGRU(units*2, return_sequences=True, 
+    bidir_rnn = Bidirectional(CuDNNGRU(units*3, return_sequences=True, 
                     name='bidir_rnn_1'), merge_mode='concat')(bn_cnn)
     bn_rnn_1 = BatchNormalization(name='bn_rnn_1')(bidir_rnn)
-    drop_1 = Dropout(0.2)(bn_rnn_1)
+
     
-    bidir_rnn_2 = Bidirectional(CuDNNGRU(units,
-        return_sequences=True, name='bidir_rnn_2'), merge_mode='concat')(drop_1)
+    bidir_rnn_2 = Bidirectional(CuDNNGRU(units*2,
+        return_sequences=True, name='bidir_rnn_2'), merge_mode='concat')(bn_rnn_1)
     bn_rnn_2 = BatchNormalization(name='bn_rnn_2')(bidir_rnn_2)
     drop_2 = Dropout(0.1)(bn_rnn_2)
 
+    bidir_rnn_3 = Bidirectional(CuDNNGRU(units*1,
+        return_sequences=True, name='bidir_rnn_3'), merge_mode='concat')(drop_2)
+    bn_rnn_3 = BatchNormalization(name='bn_rnn_3')(bidir_rnn_3)
+    drop_3 = Dropout(0.2)(bn_rnn_3)
 
-
-    #bn_rnn_2 = BatchNormalization(name='bn_rnn_2')(drop_2)
 
     
-    time_dense = TimeDistributed(Dense(output_dim))(drop_2)
+    time_dense = TimeDistributed(Dense(output_dim))(drop_3)
 
 
     # Add softmax activation layer
