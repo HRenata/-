@@ -25,8 +25,7 @@ def rnn_model(input_dim, units, activation, output_dim=29):
     # Main acoustic input
     input_data = Input(name='the_input', shape=(None, input_dim))
     # Add recurrent layer
-    simp_rnn = GRU(units, activation=activation,
-        return_sequences=True, implementation=2, name='rnn')(input_data)
+    simp_rnn = CuDNNGRU(output_dim, return_sequences=True, name='rnn')(input_data)
     # TODO: Add batch normalization 
     bn_rnn = BatchNormalization()(simp_rnn)
     # TODO: Add a TimeDistributed(Dense(output_dim)) layer
@@ -55,8 +54,7 @@ def cnn_rnn_model(input_dim, filters, kernel_size, conv_stride,
     # Add batch normalization
     bn_cnn = BatchNormalization(name='bn_conv_1d')(conv_1d)
     # Add a recurrent layer
-    simp_rnn = SimpleRNN(units, activation='relu',
-        return_sequences=True, implementation=2, name='rnn')(bn_cnn)
+    simp_rnn = CuDNNGRU(units, return_sequences=True, name='rnn')(bn_cnn)
     # TODO: Add batch normalization
     bn_rnn = BatchNormalization(name='bn_rnn_layer')(simp_rnn)
     # TODO: Add a TimeDistributed(Dense(output_dim)) layer
@@ -123,8 +121,7 @@ def bidirectional_rnn_model(input_dim, units, output_dim=29):
     # Main acoustic input
     input_data = Input(name='the_input', shape=(None, input_dim))
     # TODO: Add bidirectional recurrent layer
-    bidir_rnn = Bidirectional(SimpleRNN(units, activation='relu', 
-                                        return_sequences=True, name='rnn'), merge_mode='concat')(input_data)
+    bidir_rnn = Bidirectional(CuDNNGRU(units, return_sequences=True, name='rnn'), merge_mode='concat')(input_data)
     #batch_norm = BatchNormalization(name='bn_bi_layer')(bidir_rnn)
     # TODO: Add a TimeDistributed(Dense(output_dim)) layer
     time_dense = TimeDistributed(Dense(output_dim))(bidir_rnn)
@@ -165,11 +162,15 @@ def final_model(input_dim, filters, kernel_size, conv_stride,
     bidir_rnn_3 = Bidirectional(CuDNNGRU(units*1,
         return_sequences=True, name='bidir_rnn_3'), merge_mode='concat')(drop_2)
     bn_rnn_3 = BatchNormalization(name='bn_rnn_3')(bidir_rnn_3)
-    drop_3 = Dropout(0.2)(bn_rnn_3)
+    drop_3 = Dropout(0.3)(bn_rnn_3)
+
+    bidir_rnn_4 = Bidirectional(CuDNNGRU(units*1,
+        return_sequences=True, name='bidir_rnn_4'), merge_mode='concat')(drop_3)
+    bn_rnn_4 = BatchNormalization(name='bn_rnn_4')(bidir_rnn_4)
 
 
     
-    time_dense = TimeDistributed(Dense(output_dim))(drop_3)
+    time_dense = TimeDistributed(Dense(output_dim))(bn_rnn_4)
 
 
     # Add softmax activation layer
