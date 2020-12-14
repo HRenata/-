@@ -1,1 +1,0 @@
-/home/bash/dev/lib/kenlm/build/bin/lmplz -o 5 < /home/bash/Downloads/LibriSpeech/books/ascii/11/11.txt > alice_lm.arpa

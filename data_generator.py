@@ -7,20 +7,15 @@ import json
 import numpy as np
 import random
 from python_speech_features import mfcc
-import librosa
 import scipy.io.wavfile as wav
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from utils import calc_feat_dim, spectrogram_from_file, text_to_int_sequence
-from utils import conv_output_length
+from utils import calc_feat_dim, text_to_int_sequence
 
 RNG_SEED = 123
 
 class AudioGenerator():
     def __init__(self, step=10, window=20, max_freq=8000, mfcc_dim=13,
-        minibatch_size=20, desc_file=None, spectrogram=True, max_duration=10.0, 
-        sort_by_duration=False):
+        minibatch_size=20, desc_file=None, max_duration=10.0):
         """
         Params:
             step (int): Step size in milliseconds between windows (for spectrogram ONLY)
@@ -47,8 +42,6 @@ class AudioGenerator():
         self.cur_test_index = 0
         self.max_duration=max_duration
         self.minibatch_size = minibatch_size
-        self.spectrogram = spectrogram
-        self.sort_by_duration = sort_by_duration
 
     def get_batch(self, partition):
         """ Obtain a batch of train, validation, or test data
@@ -79,8 +72,7 @@ class AudioGenerator():
             for i in range(0, self.minibatch_size)])
         
         # initialize the arrays
-        X_data = np.zeros([self.minibatch_size, max_length, 
-            self.feat_dim*self.spectrogram + self.mfcc_dim*(not self.spectrogram)])
+        X_data = np.zeros([self.minibatch_size, max_length, self.mfcc_dim])
         labels = np.ones([self.minibatch_size, max_string_length]) * 28
         input_length = np.zeros([self.minibatch_size, 1])
         label_length = np.zeros([self.minibatch_size, 1])
@@ -113,19 +105,6 @@ class AudioGenerator():
                 self.train_audio_paths, self.train_durations, self.train_texts)
         elif partition == 'valid':
             self.valid_audio_paths, self.valid_durations, self.valid_texts = shuffle_data(
-                self.valid_audio_paths, self.valid_durations, self.valid_texts)
-        else:
-            raise Exception("Invalid partition. "
-                "Must be train/validation")
-
-    def sort_data_by_duration(self, partition):
-        """ Sort the training or validation sets by (increasing) duration
-        """
-        if partition == 'train':
-            self.train_audio_paths, self.train_durations, self.train_texts = sort_data(
-                self.train_audio_paths, self.train_durations, self.train_texts)
-        elif partition == 'valid':
-            self.valid_audio_paths, self.valid_durations, self.valid_texts = sort_data(
                 self.valid_audio_paths, self.valid_durations, self.valid_texts)
         else:
             raise Exception("Invalid partition. "
@@ -166,13 +145,9 @@ class AudioGenerator():
     def load_train_data(self, desc_file='train_corpus.json'):
         self.load_metadata_from_desc_file(desc_file, 'train')
         self.fit_train()
-        if self.sort_by_duration:
-            self.sort_data_by_duration('train')
 
     def load_validation_data(self, desc_file='valid_corpus.json'):
         self.load_metadata_from_desc_file(desc_file, 'validation')
-        if self.sort_by_duration:
-            self.sort_data_by_duration('valid')
 
     def load_test_data(self, desc_file='test_corpus.json'):
         self.load_metadata_from_desc_file(desc_file, 'test')
@@ -234,13 +209,8 @@ class AudioGenerator():
         Params:
             audio_clip (str): Path to the audio clip
         """
-        if self.spectrogram:
-            return spectrogram_from_file(
-                audio_clip, step=self.step, window=self.window,
-                max_freq=self.max_freq)
-        else:
-            (rate, sig) = wav.read(audio_clip)
-            return mfcc(sig, rate, numcep=self.mfcc_dim)
+        (rate, sig) = wav.read(audio_clip)
+        return mfcc(sig, rate, numcep=self.mfcc_dim)
 
     def normalize(self, feature, eps=1e-14):
         """ Center a feature using the mean and std
@@ -262,77 +232,3 @@ def shuffle_data(audio_paths, durations, texts):
     durations = [durations[i] for i in p] 
     texts = [texts[i] for i in p]
     return audio_paths, durations, texts
-
-def sort_data(audio_paths, durations, texts):
-    """ Sort the data by duration 
-    Params:
-        audio_paths (list): Paths to audio clips
-        durations (list): Durations of utterances for each audio clip
-        texts (list): Sentences uttered in each audio clip
-    """
-    p = np.argsort(durations).tolist()
-    audio_paths = [audio_paths[i] for i in p]
-    durations = [durations[i] for i in p] 
-    texts = [texts[i] for i in p]
-    return audio_paths, durations, texts
-
-def vis_train_features(index=0):
-    """ Visualizing the data point in the training set at the supplied index
-    """
-    # obtain spectrogram
-    audio_gen = AudioGenerator(spectrogram=True)
-    audio_gen.load_train_data()
-    vis_audio_path = audio_gen.train_audio_paths[index]
-    vis_spectrogram_feature = audio_gen.normalize(audio_gen.featurize(vis_audio_path))
-    # obtain mfcc
-    audio_gen = AudioGenerator(spectrogram=False)
-    audio_gen.load_train_data()
-    vis_mfcc_feature = audio_gen.normalize(audio_gen.featurize(vis_audio_path))
-    # obtain text label
-    vis_text = audio_gen.train_texts[index]
-    # obtain raw audio
-    vis_raw_audio, _ = librosa.load(vis_audio_path)
-    # print total number of training examples
-    print('There are %d total training examples.' % len(audio_gen.train_audio_paths))
-    # return labels for plotting
-    return vis_text, vis_raw_audio, vis_mfcc_feature, vis_spectrogram_feature, vis_audio_path
-
-
-def plot_raw_audio(vis_raw_audio):
-    # plot the raw audio signal
-    fig = plt.figure(figsize=(12,3))
-    ax = fig.add_subplot(111)
-    steps = len(vis_raw_audio)
-    ax.plot(np.linspace(1, steps, steps), vis_raw_audio)
-    plt.title('Audio Signal')
-    plt.xlabel('Time')
-    plt.ylabel('Amplitude')
-    plt.show()
-
-def plot_mfcc_feature(vis_mfcc_feature):
-    # plot the MFCC feature
-    fig = plt.figure(figsize=(12,5))
-    ax = fig.add_subplot(111)
-    im = ax.imshow(vis_mfcc_feature, cmap=plt.cm.jet, aspect='auto')
-    plt.title('Normalized MFCC')
-    plt.ylabel('Time')
-    plt.xlabel('MFCC Coefficient')
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="5%", pad=0.05)
-    plt.colorbar(im, cax=cax)
-    ax.set_xticks(np.arange(0, 13, 2), minor=False);
-    plt.show()
-
-def plot_spectrogram_feature(vis_spectrogram_feature):
-    # plot the normalized spectrogram
-    fig = plt.figure(figsize=(12,5))
-    ax = fig.add_subplot(111)
-    im = ax.imshow(vis_spectrogram_feature, cmap=plt.cm.jet, aspect='auto')
-    plt.title('Normalized Spectrogram')
-    plt.ylabel('Time')
-    plt.xlabel('Frequency')
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="5%", pad=0.05)
-    plt.colorbar(im, cax=cax)
-    plt.show()
-

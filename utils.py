@@ -6,8 +6,10 @@ import soundfile
 from numpy.lib.stride_tricks import as_strided
 from char_map import char_map, index_map
 
+
 def calc_feat_dim(window, max_freq):
     return int(0.001 * window * max_freq) + 1
+
 
 def conv_output_length(input_length, filter_size, border_mode, stride,
                        dilation=1):
@@ -119,6 +121,7 @@ def spectrogram_from_file(filename, step=10, window=20, max_freq=None,
         ind = np.where(freqs <= max_freq)[0][-1] + 1
     return np.transpose(np.log(pxx[:ind, :] + eps))
 
+
 def text_to_int_sequence(text):
     """ Convert text to an integer sequence """
     int_sequence = []
@@ -130,27 +133,17 @@ def text_to_int_sequence(text):
         int_sequence.append(ch)
     return int_sequence
 
+
+
 def int_sequence_to_text(int_sequence):
-    """ Convert an integer sequence to text """
-    text = []
-    for c in int_sequence:
-        ch = index_map[c]
-        text.append(ch)
-    return text
-
-def ctc_to_char(prediction):
+    """ Convert an integer sequence to text
+    Params:
+        int_sequence ([]): integer sequence that will be converted to text
     """
-    return prediction as chars
-    
-    Args:
-        (:obj:`numpy.ndarray`) (samples * time_step * features)
-    Return:
-        char[] where char[i] == max(features at time_step i)
+    char_sequence = ""
+    for i in int_sequence:
+        if (i != 0):
+            number = index_map[int(i)]
+            char_sequence += number
+    return char_sequence
 
-    """
-    int_arr = []
-    for row in prediction[0]:
-        print(np.argmax(row))
-        int_arr.append(np.argmax(row))
-    
-    return int_arr
